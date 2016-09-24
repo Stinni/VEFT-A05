@@ -18,13 +18,18 @@ namespace CoursesAPI.Tests.Services
 
 		private const string SSN_DABS    = "1203735289";
 		private const string SSN_GUNNA   = "1234567890";
-		private const string INVALID_SSN = "9876543210";
+        private const string SSN_KHF     = "0110813209";
+        private const string INVALID_SSN = "9876543210";
 
-		private const string NAME_GUNNA  = "Guðrún Guðmundsdóttir";
+	    private const string NAME_DABS   = "Daníel B. Sigurgeirsson";
+        private const string NAME_GUNNA  = "Guðrún Guðmundsdóttir";
+        private const string NAME_KHF    = "Kristinn H. Freysteinsson";
 
-		private const int COURSEID_VEFT_20153 = 1337;
+	    private const int COURSEID_VEFT_20143 = 1200;
+        private const int COURSEID_VEFT_20153 = 1337;
 		private const int COURSEID_VEFT_20163 = 1338;
-		private const int INVALID_COURSEID    = 9999;
+        private const int COURSEID_PROG_20163 = 1339;
+        private const int INVALID_COURSEID    = 9999;
 
 		public CourseServicesTests()
 		{
@@ -33,12 +38,10 @@ namespace CoursesAPI.Tests.Services
 			#region Persons
 			var persons = new List<Person>
 			{
-				// Of course I'm the first person,
-				// did you expect anything else?
 				new Person
 				{
 					ID    = 1,
-					Name  = "Daníel B. Sigurgeirsson",
+					Name  = NAME_DABS,
 					SSN   = SSN_DABS,
 					Email = "dabs@ru.is"
 				},
@@ -48,7 +51,14 @@ namespace CoursesAPI.Tests.Services
 					Name  = NAME_GUNNA,
 					SSN   = SSN_GUNNA,
 					Email = "gunna@ru.is"
-				}
+				},
+                new Person
+                {
+                    ID    = 3,
+                    Name  = NAME_KHF,
+                    SSN   = SSN_KHF,
+                    Email = "kristinnf13@ru.is"
+                }
 			};
 			#endregion
 
@@ -61,13 +71,25 @@ namespace CoursesAPI.Tests.Services
 					CourseID    = "T-514-VEFT",
 					Description = "Í þessum áfanga verður fjallað um vefþj...",
 					Name        = "Vefþjónustur"
-				}
+				},
+                new CourseTemplate
+                {
+                    CourseID    = "T-111-PROG",
+                    Description = "Í þessum áfanga verður fjallað um forritun...",
+                    Name        = "Forritun"
+                }
 			};
 			#endregion
 
 			#region Courses
 			var courses = new List<CourseInstance>
 			{
+                new CourseInstance
+                {
+                    ID         = COURSEID_VEFT_20143,
+                    CourseID   = "T-514-VEFT",
+                    SemesterID = "20143"
+                },
 				new CourseInstance
 				{
 					ID         = COURSEID_VEFT_20153,
@@ -79,8 +101,14 @@ namespace CoursesAPI.Tests.Services
 					ID         = COURSEID_VEFT_20163,
 					CourseID   = "T-514-VEFT",
 					SemesterID = "20163"
-				}
-			};
+				},
+                new CourseInstance
+                {
+                    ID         = COURSEID_PROG_20163,
+                    CourseID   = "T-111-PROG",
+                    SemesterID = "20163"
+                }
+            };
 			#endregion
 
 			#region Teacher registrations
@@ -92,7 +120,14 @@ namespace CoursesAPI.Tests.Services
 					CourseInstanceID = COURSEID_VEFT_20153,
 					SSN              = SSN_DABS,
 					Type             = TeacherType.MainTeacher
-				}
+				},
+                new TeacherRegistration
+                {
+                    ID               = 102,
+                    CourseInstanceID = COURSEID_PROG_20163,
+                    SSN              = SSN_KHF,
+                    Type             = TeacherType.AssistantTeacher
+                }
 			};
 			#endregion
 
@@ -101,38 +136,101 @@ namespace CoursesAPI.Tests.Services
 			_mockUnitOfWork.SetRepositoryData(courses);
 			_mockUnitOfWork.SetRepositoryData(_teacherRegistrations);
 
-			// TODO: this would be the correct place to add 
-			// more mock data to the mockUnitOfWork!
-
 			_service = new CoursesServiceProvider(_mockUnitOfWork);
 		}
 
 		#region GetCoursesBySemester
 		/// <summary>
-		/// TODO: implement this test, and several others!
+		/// Sets up (arranges) the course instance list to be empty and checks if it isn't so
 		/// </summary>
 		[Fact]
 		public void GetCoursesBySemester_ReturnsEmptyListWhenNoDataDefined()
 		{
 			// Arrange:
+		    _mockUnitOfWork.SetRepositoryData(new List<CourseInstance>());
 
-			// Act:
+            // Act:
+            var courses1 = _service.GetCourseInstancesBySemester("20143");
+            var courses2 = _service.GetCourseInstancesBySemester(); // Uses "20153" by default
+            var courses3 = _service.GetCourseInstancesBySemester("20163");
+		    
+		    // Assert:
+		    Assert.Equal(0, courses1.Count);
+            Assert.Equal(0, courses2.Count);
+            Assert.Equal(0, courses3.Count);
+        }
 
-			// Assert:
-			// Assert.True(true);
-		}
+        /// <summary>
+        /// Gets the list of courses for the "20153" semester and checks if it has 1 course
+        /// and that the main teacher of that course is DABS.
+        /// </summary>
+        [Fact]
+        public void GetCoursesBySemester_ReturnsListOfOneCourseAndOneMainTeacher()
+        {
+            // Arrange:
 
-		// TODO!!! you should write more unit tests here!!!
+            // Act:
+            var courses = _service.GetCourseInstancesBySemester(); // Uses "20153" by default
 
-		#endregion
+            // Assert:
+            Assert.Equal(1, courses.Count);
+            Assert.Equal(NAME_DABS, courses[0].MainTeacher);
+        }
 
-		#region AddTeacher
+        /// <summary>
+        /// Gets the list of courses for the "20143" semester and checks if it has 1 course
+        /// and that the main teacher's name is an empty string.
+        /// </summary>
+        [Fact]
+	    public void GetCoursesBySemester_ReturnsListOfOneCourseAndNoMainTeacher()
+	    {
+            // Arrange:
 
-		/// <summary>
-		/// Adds a main teacher to a course which doesn't have a
-		/// main teacher defined already (see test data defined above).
-		/// </summary>
-		[Fact]
+            // Act:
+            var courses = _service.GetCourseInstancesBySemester("20143");
+
+            // Assert:
+            Assert.Equal(1, courses.Count);
+            Assert.Equal("", courses[0].MainTeacher);
+        }
+
+        /// <summary>
+        /// Gets the list of courses for the "20163" semester and checks if it has 2 courses
+        /// and that both main teacher's names are empty strings. And therefore makes sure that
+        /// the assistant teacher's name isn't returned as a course's main teacher's name.
+        /// </summary>
+        [Fact]
+        public void GetCoursesBySemester_ReturnsListOfTwoCoursesAndNoMainTeachers()
+        {
+            // Arrange:
+
+            // Act:
+            var courses = _service.GetCourseInstancesBySemester("20163");
+
+            // Assert:
+            Assert.Equal(2, courses.Count);
+            foreach (var c in courses)
+            {
+                if (c.CourseInstanceID == COURSEID_VEFT_20163)
+                {
+                    Assert.Equal("", c.MainTeacher);
+                }
+                if (c.CourseInstanceID == COURSEID_PROG_20163)
+                {
+                    // Test to make sure that assistant teacher isn't returned as main teacher
+                    Assert.Equal("", c.MainTeacher);
+                }
+            }
+        }
+        #endregion
+
+        #region AddTeacher
+
+        /// <summary>
+        /// Adds a main teacher to a course which doesn't have a
+        /// main teacher defined already (see test data defined above).
+        /// </summary>
+        [Fact]
 		public void AddTeacher_WithValidTeacherAndCourse()
 		{
 			// Arrange:
@@ -170,7 +268,6 @@ namespace CoursesAPI.Tests.Services
 		}
 
 		[Fact]
-//		[ExpectedException(typeof(AppObjectNotFoundException))]
 		public void AddTeacher_InvalidCourse()
 		{
 			// Arrange:
@@ -190,7 +287,6 @@ namespace CoursesAPI.Tests.Services
 		/// when that person is not registered in the system.
 		/// </summary>
 		[Fact]
-//		[ExpectedException(typeof (AppObjectNotFoundException))]
 		public void AddTeacher_InvalidTeacher()
 		{
 			// Arrange:
@@ -211,7 +307,6 @@ namespace CoursesAPI.Tests.Services
 		/// defined.
 		/// </summary>
 		[Fact]
-		//[ExpectedExceptionWithMessage(typeof (AppValidationException), "COURSE_ALREADY_HAS_A_MAIN_TEACHER")]
 		public void AddTeacher_AlreadyWithMainTeacher()
 		{
 			// Arrange:
@@ -233,7 +328,6 @@ namespace CoursesAPI.Tests.Services
 		/// as a teacher in the given course.
 		/// </summary>
 		[Fact]
-		// [ExpectedExceptionWithMessage(typeof (AppValidationException), "PERSON_ALREADY_REGISTERED_TEACHER_IN_COURSE")]
 		public void AddTeacher_PersonAlreadyRegisteredAsTeacherInCourse()
 		{
 			// Arrange:
@@ -246,7 +340,7 @@ namespace CoursesAPI.Tests.Services
 
 			// Act:
 			Exception ex = Assert.Throws<AppValidationException>( () => _service.AddTeacherToCourse(COURSEID_VEFT_20153, model));
-			Assert.Equal(ex.Message, "PERSON_ALREADY_REGISTERED_TEACHER_IN_COURSE");
+			Assert.Equal(ex.Message, "PERSON_ALREADY_REGISTERED_AS_TEACHER_IN_COURSE");
 		}
 
 		#endregion
