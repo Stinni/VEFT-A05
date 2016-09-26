@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using CoursesAPI.Models;
 using CoursesAPI.Services.DataAccess;
 using CoursesAPI.Services.Exceptions;
 using CoursesAPI.Services.Models.Entities;
+using CoursesAPI.Services.Utilities;
 
 namespace CoursesAPI.Services.Services
 {
@@ -112,11 +112,11 @@ namespace CoursesAPI.Services.Services
 		/// </summary>
 		/// <param name="semester"></param>
 		/// <returns></returns>
-		public List<CourseInstanceDTO> GetCourseInstancesBySemester(string semester = null)
+		public PageResult<CourseInstanceDTO> GetCourseInstancesBySemester(string lang, int page, string semester = null)
 		{
 			if (string.IsNullOrEmpty(semester))
 			{
-				semester = "20153";
+				semester = "20163";
 			}
 
 			var courses = (from c in _courseInstances.All()
@@ -124,7 +124,7 @@ namespace CoursesAPI.Services.Services
                 where c.SemesterID == semester
 				select new CourseInstanceDTO
 				{
-					Name               = ct.Name,
+					Name               = lang == "is-IS" ? ct.Name : ct.NameEN,
 					TemplateID         = ct.CourseID,
 					CourseInstanceID   = c.ID
                 }).ToList();
@@ -134,7 +134,17 @@ namespace CoursesAPI.Services.Services
 		        c.MainTeacher = GetMainTeacherNameOrEmptyString(c.CourseInstanceID);
 		    }
 
-            return courses;
+            return new PageResult<CourseInstanceDTO>
+            {
+                Items = courses,
+                Paging = new PageInfo
+                {
+                    PageCount = 1,
+                    PageNumber = 1,
+                    PageSize = 2,
+                    TotalNumberOfItems = 2
+                }
+            };
 		}
 
         /// <summary>

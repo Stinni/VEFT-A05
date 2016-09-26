@@ -17,11 +17,18 @@ namespace CoursesAPI.Controllers
 		}
 
 		[HttpGet]
-		public IActionResult GetCoursesBySemester(string semester = null)
+		public IActionResult GetCoursesBySemester(int? page, string semester = null)
 		{
-			// TODO: figure out the requested language (if any!)
-			// and pass it to the service provider!
-			return Ok(_service.GetCourseInstancesBySemester(semester));
+		    var pageNumber = 0;
+		    if (page.HasValue)
+		    {
+                pageNumber = page.Value;
+		    }
+		    var lang = Request.Headers["Accept-Language"].ToString();
+		    var langs = lang.Split(',');
+            // TODO: figure out the requested language (if any!)
+            // and pass it to the service provider!
+            return Ok(_service.GetCourseInstancesBySemester(langs[0], pageNumber, semester));
 		}
 
 		/// <summary>
@@ -33,7 +40,9 @@ namespace CoursesAPI.Controllers
 		[Route("{id}/teachers")]
 		public IActionResult AddTeacher(int id, AddTeacherViewModel model)
 		{
-			var result = _service.AddTeacherToCourse(id, model);
+            if (model == null || !ModelState.IsValid) return BadRequest(ModelState);
+
+            var result = _service.AddTeacherToCourse(id, model);
 			return Created("TODO", result);
 		}
 	}
