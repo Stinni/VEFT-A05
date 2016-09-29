@@ -19,10 +19,15 @@ namespace CoursesAPI.Controllers
 		}
 
         /// <summary>
-        /// 
+        /// Get method for the "api/courses" route
+        /// The 2 parameters are optional, if page is left out then page 1 is returned.
+        /// If semester is left out, "20163" is returned. This method returns either a
+        /// corresponding error message if the page or semester doesn't exist or a PageResult
+        /// with up to 10 CourseInsanceDTO's along with info about number of items, pages, page
+        /// size and the page number of the page being returned.
         /// </summary>
-        /// <param name="page"></param>
-        /// <param name="semester"></param>
+        /// <param name="page">The page number being requested.</param>
+        /// <param name="semester">The semester being requested.</param>
 		[HttpGet]
 		public IActionResult GetCoursesBySemester(int? page, string semester = null)
 		{

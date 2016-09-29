@@ -109,9 +109,7 @@ namespace CoursesAPI.Services.Services
 		}
 
         /// <summary>
-        /// You should write tests for this function. You will also need to
-        /// modify it, such that it will correctly return the name of the main
-        /// teacher of each course.
+        /// 
         /// </summary>
         /// <param name="lang"></param>
         /// <param name="page"></param>
