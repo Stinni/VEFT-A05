@@ -128,21 +128,21 @@ namespace CoursesAPI.Services.Services
 				semester = "20163";
 			}
 
-		    var allCourseInstancesInSemester = (from c in _courseInstances.All()
-		                                        where c.SemesterID == semester
-		                                        select c);
-            var numberOfPages = (int)Math.Ceiling(allCourseInstancesInSemester.Count() / (double)pageSize);
+		    var numberOfInstancesInSemester = (from c in _courseInstances.All()
+		                                       where c.SemesterID == semester
+		                                       select c).Count();
+            var numberOfPages = (int)Math.Ceiling(numberOfInstancesInSemester / (double)pageSize);
             if (page <= 0 || page > numberOfPages)
             {
                 throw new AppObjectNotFoundException();
             }
 
-            var courses = (from c in allCourseInstancesInSemester
+            var courses = (from c in _courseInstances.All()
                            join ct in _courseTemplates.All() on c.CourseID equals ct.CourseID
                            where c.SemesterID == semester
 			               select new CourseInstanceDTO
 			               {
-				               Name               = (lang == "is-IS" ? ct.Name : ct.NameEN),
+				               Name               = lang == "is-IS" ? ct.Name : ct.NameEN,
 				               TemplateID         = ct.CourseID,
 				               CourseInstanceID   = c.ID
                            }).Skip((page - 1) * pageSize).Take(pageSize).ToList();
@@ -160,7 +160,7 @@ namespace CoursesAPI.Services.Services
                     PageCount = numberOfPages,
                     PageNumber = page,
                     PageSize = pageSize,
-                    TotalNumberOfItems = allCourseInstancesInSemester.Count()
+                    TotalNumberOfItems = numberOfInstancesInSemester
                 }
             };
 		}

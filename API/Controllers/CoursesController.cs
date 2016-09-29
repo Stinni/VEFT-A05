@@ -18,12 +18,18 @@ namespace CoursesAPI.Controllers
 			_service = new CoursesServiceProvider(uow);
 		}
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="semester"></param>
 		[HttpGet]
 		public IActionResult GetCoursesBySemester(int? page, string semester = null)
 		{
-		    if (!page.HasValue)
+		    var thePage = 1;
+		    if (page.HasValue)
 		    {
-		        return BadRequest();
+                thePage = page.Value;
 		    }
 
 		    var lang = Request.Headers["Accept-Language"].ToString();
@@ -31,7 +37,7 @@ namespace CoursesAPI.Controllers
 
             try
 		    {
-		        var pageResult = _service.GetCourseInstancesBySemester(page.Value, langs[0], semester);
+		        var pageResult = _service.GetCourseInstancesBySemester(thePage, langs[0], semester);
 		        return Ok(pageResult);
 		    }
 		    catch (AppObjectNotFoundException)
@@ -40,19 +46,31 @@ namespace CoursesAPI.Controllers
 		    }
 		}
 
-		/// <summary>
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="model"></param>
-		/// <returns></returns>
-		[HttpPost]
+        /// <summary>
+        /// This was not implemented for this project and is therefore not
+        /// 'pretty' or documented
+        /// </summary>
+        /// <param name="id">The id of the course that the teacher's going to be teaching</param>
+        /// <param name="model">An AddTeacherViewModel including the teacher's SSN and type</param>
+        [HttpPost]
 		[Route("{id}/teachers")]
 		public IActionResult AddTeacher(int id, AddTeacherViewModel model)
 		{
             if (model == null || !ModelState.IsValid) return BadRequest(ModelState);
 
-            var result = _service.AddTeacherToCourse(id, model);
-			return Created("TODO", result);
+		    try
+		    {
+		        var result = _service.AddTeacherToCourse(id, model);
+		        return Created("TODO", result);
+		    }
+		    catch (AppObjectNotFoundException)
+		    {
+		        return NotFound();
+		    }
+		    catch (AppValidationException)
+		    {
+		        return BadRequest();
+		    }
 		}
 	}
 }
