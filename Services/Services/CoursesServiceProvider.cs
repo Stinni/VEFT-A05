@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using CoursesAPI.Models;
 using CoursesAPI.Services.DataAccess;
 using CoursesAPI.Services.Exceptions;
@@ -15,6 +16,8 @@ namespace CoursesAPI.Services.Services
 		private readonly IRepository<TeacherRegistration> _teacherRegistrations;
 		private readonly IRepository<CourseTemplate> _courseTemplates; 
 		private readonly IRepository<Person> _persons;
+
+	    private readonly int pageSize = 10;
 
 		public CoursesServiceProvider(IUnitOfWork uow)
 		{
@@ -105,31 +108,46 @@ namespace CoursesAPI.Services.Services
             return person;
 		}
 
-		/// <summary>
-		/// You should write tests for this function. You will also need to
-		/// modify it, such that it will correctly return the name of the main
-		/// teacher of each course.
-		/// </summary>
-		/// <param name="semester"></param>
-		/// <returns></returns>
-		public PageResult<CourseInstanceDTO> GetCourseInstancesBySemester(string lang, int page, string semester = null)
+        /// <summary>
+        /// You should write tests for this function. You will also need to
+        /// modify it, such that it will correctly return the name of the main
+        /// teacher of each course.
+        /// </summary>
+        /// <param name="lang"></param>
+        /// <param name="page"></param>
+        /// <param name="semester"></param>
+        /// <returns></returns>
+        public PageResult<CourseInstanceDTO> GetCourseInstancesBySemester(int page, string lang = null, string semester = null)
 		{
-			if (string.IsNullOrEmpty(semester))
+		    if (string.IsNullOrEmpty(lang))
+		    {
+		        lang = "en-GB";
+		    }
+            if (string.IsNullOrEmpty(semester))
 			{
 				semester = "20163";
 			}
 
-			var courses = (from c in _courseInstances.All()
-				join ct in _courseTemplates.All() on c.CourseID equals ct.CourseID
-                where c.SemesterID == semester
-				select new CourseInstanceDTO
-				{
-					Name               = lang == "is-IS" ? ct.Name : ct.NameEN,
-					TemplateID         = ct.CourseID,
-					CourseInstanceID   = c.ID
-                }).ToList();
+		    var allCourseInstancesInSemester = (from c in _courseInstances.All()
+		                                        where c.SemesterID == semester
+		                                        select c);
+            var numberOfPages = (int)Math.Ceiling(allCourseInstancesInSemester.Count() / (double)pageSize);
+            if (page <= 0 || page > numberOfPages)
+            {
+                throw new AppObjectNotFoundException();
+            }
 
-		    foreach (var c in courses)
+            var courses = (from c in allCourseInstancesInSemester
+                           join ct in _courseTemplates.All() on c.CourseID equals ct.CourseID
+                           where c.SemesterID == semester
+			               select new CourseInstanceDTO
+			               {
+				               Name               = (lang == "is-IS" ? ct.Name : ct.NameEN),
+				               TemplateID         = ct.CourseID,
+				               CourseInstanceID   = c.ID
+                           }).Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            foreach (var c in courses)
 		    {
 		        c.MainTeacher = GetMainTeacherNameOrEmptyString(c.CourseInstanceID);
 		    }
@@ -139,10 +157,10 @@ namespace CoursesAPI.Services.Services
                 Items = courses,
                 Paging = new PageInfo
                 {
-                    PageCount = 1,
-                    PageNumber = 1,
-                    PageSize = 2,
-                    TotalNumberOfItems = 2
+                    PageCount = numberOfPages,
+                    PageNumber = page,
+                    PageSize = pageSize,
+                    TotalNumberOfItems = allCourseInstancesInSemester.Count()
                 }
             };
 		}
@@ -183,13 +201,13 @@ namespace CoursesAPI.Services.Services
         /// A helper function for the GetCourseInstancesBySemester function. Gets the main teacher's name
         /// for a certain course instance or returns an empty string if there's no main teacher registered.
         /// </summary>
-        /// <param name="CourseInstanceID">The ID of the course instance which main teacher's name we want.</param>
+        /// <param name="courseInstanceID">The ID of the course instance which main teacher's name we want.</param>
         /// <returns>A teacher's name or an empty string</returns>
-	    private string GetMainTeacherNameOrEmptyString(int CourseInstanceID)
+	    private string GetMainTeacherNameOrEmptyString(int courseInstanceID)
 	    {
 	        var name = (from tr in _teacherRegistrations.All()
 	                    join p in _persons.All() on tr.SSN equals p.SSN
-	                    where tr.CourseInstanceID == CourseInstanceID && tr.Type == TeacherType.MainTeacher
+	                    where tr.CourseInstanceID == courseInstanceID && tr.Type == TeacherType.MainTeacher
 	                    select p.Name).SingleOrDefault();
 
 	        return name ?? "";

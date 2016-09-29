@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using Microsoft.AspNetCore.Mvc;
 
 using CoursesAPI.Models;
 using CoursesAPI.Services.DataAccess;
+using CoursesAPI.Services.Exceptions;
 using CoursesAPI.Services.Services;
 
 namespace CoursesAPI.Controllers
@@ -19,16 +21,23 @@ namespace CoursesAPI.Controllers
 		[HttpGet]
 		public IActionResult GetCoursesBySemester(int? page, string semester = null)
 		{
-		    var pageNumber = 0;
-		    if (page.HasValue)
+		    if (!page.HasValue)
 		    {
-                pageNumber = page.Value;
+		        return BadRequest();
 		    }
+
 		    var lang = Request.Headers["Accept-Language"].ToString();
 		    var langs = lang.Split(',');
-            // TODO: figure out the requested language (if any!)
-            // and pass it to the service provider!
-            return Ok(_service.GetCourseInstancesBySemester(langs[0], pageNumber, semester));
+
+            try
+		    {
+		        var pageResult = _service.GetCourseInstancesBySemester(page.Value, langs[0], semester);
+		        return Ok(pageResult);
+		    }
+		    catch (AppObjectNotFoundException)
+		    {
+		        return NotFound();
+		    }
 		}
 
 		/// <summary>

@@ -140,26 +140,6 @@ namespace CoursesAPI.Tests.Services
 		}
 
 		#region GetCoursesBySemester
-		/// <summary>
-		/// Sets up (arranges) the course instance list to be empty and checks if it isn't so
-		/// </summary>
-		[Fact]
-		public void GetCoursesBySemester_ReturnsEmptyListWhenNoDataDefined()
-		{
-			// Arrange:
-		    _mockUnitOfWork.SetRepositoryData(new List<CourseInstance>());
-
-            // Act:
-            var courses1 = _service.GetCourseInstancesBySemester("20143");
-            var courses2 = _service.GetCourseInstancesBySemester(); // Uses "20153" by default
-            var courses3 = _service.GetCourseInstancesBySemester("20163");
-		    
-		    // Assert:
-		    Assert.Equal(0, courses1.Count);
-            Assert.Equal(0, courses2.Count);
-            Assert.Equal(0, courses3.Count);
-        }
-
         /// <summary>
         /// Gets the list of courses for the "20153" semester and checks if it has 1 course
         /// and that the main teacher of that course is DABS.
@@ -170,11 +150,11 @@ namespace CoursesAPI.Tests.Services
             // Arrange:
 
             // Act:
-            var courses = _service.GetCourseInstancesBySemester(); // Uses "20153" by default
+            var courses = _service.GetCourseInstancesBySemester(1, null, "20153"); 
 
             // Assert:
-            Assert.Equal(1, courses.Count);
-            Assert.Equal(NAME_DABS, courses[0].MainTeacher);
+            Assert.Equal(1, courses.Items.Count);
+            Assert.Equal(NAME_DABS, courses.Items[0].MainTeacher);
         }
 
         /// <summary>
@@ -187,11 +167,11 @@ namespace CoursesAPI.Tests.Services
             // Arrange:
 
             // Act:
-            var courses = _service.GetCourseInstancesBySemester("20143");
+            var courses = _service.GetCourseInstancesBySemester(1, null, "20143");
 
             // Assert:
-            Assert.Equal(1, courses.Count);
-            Assert.Equal("", courses[0].MainTeacher);
+            Assert.Equal(1, courses.Items.Count);
+            Assert.Equal("", courses.Items[0].MainTeacher);
         }
 
         /// <summary>
@@ -205,11 +185,11 @@ namespace CoursesAPI.Tests.Services
             // Arrange:
 
             // Act:
-            var courses = _service.GetCourseInstancesBySemester("20163");
+            var courses = _service.GetCourseInstancesBySemester(1, null, "20163");
 
             // Assert:
-            Assert.Equal(2, courses.Count);
-            foreach (var c in courses)
+            Assert.Equal(2, courses.Items.Count);
+            foreach (var c in courses.Items)
             {
                 if (c.CourseInstanceID == COURSEID_VEFT_20163)
                 {
